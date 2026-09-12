@@ -5,6 +5,9 @@
 ## Author: Seipher
 ## Version: 1.0.0
 ## Category: Dungeons & Raids
+## IconTexture: Interface\AddOns\KeyLinkLister\Media\logo
+## X-Curse-Project-ID: 1692631
+## X-Wago-ID: kGryPrKy
 ## SavedVariables: KeyLinkListerDB
 
 KeyLinkLister.lua

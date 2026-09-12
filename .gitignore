@@ -10,3 +10,6 @@
 Thumbs.db
 Desktop.ini
 __pycache__/
+
+# release staging
+pkg/
