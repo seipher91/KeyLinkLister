@@ -3,7 +3,7 @@
 ## Notes: Click a linked Mythic Keystone in chat: one button lists a Premade Group for that dungeon (or opens the panel pre-filled).
 ## Notes-itIT: Clicca una Keystone linkata in chat: un pulsante crea il gruppo Premade per quel dungeon (o apre il pannello prefillato).
 ## Author: Seipher
-## Version: 1.0.0
+## Version: 1.0.1
 ## Category: Dungeons & Raids
 ## IconTexture: Interface\AddOns\KeyLinkLister\Media\logo
 ## X-Curse-Project-ID: 1692631

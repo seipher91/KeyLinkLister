@@ -5,7 +5,7 @@
 -- vengono chiamate SOLO dentro l'OnClick del pulsante (o da slash command).
 
 local ADDON_NAME = ...
-local VERSION = "1.0.0"
+local VERSION = "1.0.1"
 
 local DUNGEON_CATEGORY = GROUP_FINDER_CATEGORY_ID_DUNGEONS or 2
 local FILTER_PVE = (Enum and Enum.LFGListFilter and Enum.LFGListFilter.PvE) or 4
@@ -13,6 +13,8 @@ local FILTER_SEASON = (Enum and Enum.LFGListFilter and Enum.LFGListFilter.Curren
 local LEGACY_PS_NONE = (Enum and Enum.LFGEntryPlaystyle and Enum.LFGEntryPlaystyle.None) or 0
 local PS_NONE = 0
 local PS_MAX = (Enum and Enum.LFGEntryGeneralPlaystyle and Enum.LFGEntryGeneralPlaystyle.Expert) or 4
+-- in-game (12.1): 1 Learning, 2 Casual, 3 "Competitive" (FunSerious), 4 "Carry Offered" (Expert)
+local PS_DEFAULT = (Enum and Enum.LFGEntryGeneralPlaystyle and Enum.LFGEntryGeneralPlaystyle.FunSerious) or 3
 local CAT_HOME = LE_PARTY_CATEGORY_HOME or 1
 local CAT_INSTANCE = LE_PARTY_CATEGORY_INSTANCE or 2
 local OPEN_WINDOW = 15 -- secondi: LFG_LIST_ACTIVE_ENTRY_UPDATE entro questa finestra è "nostro"
@@ -28,7 +30,7 @@ local L = {
     LISTED_SAME = "Already listed",
     OPEN_PANEL = "Open panel",
     BTN_TT_PS = "Playstyle: %s",
-    NO_KEY_HINT = "No keystone for this dungeon in your group: the button opens the Blizzard panel pre-filled, type the title there and press List Group.",
+    NO_KEY_HINT = "You don't own a keystone for this dungeon: the button opens the Blizzard panel pre-filled, type the title (+level) and press Enter.",
     ERR_NOT_LEADER = "You are not the group leader.",
     ERR_INSTANCE_GROUP = "You are in an instance group.",
     ERR_FULL = "Your group is already full.",
@@ -81,7 +83,7 @@ if GetLocale() == "itIT" then
     L.LISTED_SAME = "Già in lista"
     L.OPEN_PANEL = "Apri pannello"
     L.BTN_TT_PS = "Playstyle: %s"
-    L.NO_KEY_HINT = "Nessuna keystone di questo dungeon nel gruppo: il pulsante apre il pannello Blizzard prefillato, digita lì il titolo e premi List Group."
+    L.NO_KEY_HINT = "Non possiedi una keystone di questo dungeon: il pulsante apre il pannello Blizzard prefillato, scrivi il titolo (+livello) e premi Invio."
     L.ERR_NOT_LEADER = "Non sei il leader del gruppo."
     L.ERR_INSTANCE_GROUP = "Sei in un gruppo istanza."
     L.ERR_FULL = "Il gruppo è già pieno."
@@ -141,8 +143,12 @@ local db
 local function InitDB()
     KeyLinkListerDB = KeyLinkListerDB or {}
     db = KeyLinkListerDB
-    -- ponytail: default Expert (4), il valore mostrato come "Competitive" nel client
-    if db.playstyle == nil then db.playstyle = PS_MAX end
+    -- default "Competitive" (3). Migrazione una tantum: le 1.0.0 partivano da 4 = "Carry Offered"
+    if db.playstyle == nil then db.playstyle = PS_DEFAULT end
+    if not db.psDefaultV2 then
+        db.psDefaultV2 = true
+        if db.playstyle == PS_MAX then db.playstyle = PS_DEFAULT end
+    end
     if db.crossFaction == nil then db.crossFaction = true end
     if db.private == nil then db.private = false end
     if db.openFinder == nil then db.openFinder = true end
@@ -150,7 +156,7 @@ local function InitDB()
     db.minScore = tonumber(db.minScore) or 0
 end
 
-local PS_FALLBACK = { "Learning", "Relaxed", "Serious", "Expert" }
+local PS_FALLBACK = { "Learning", "Casual", "Competitive", "Carry Offered" }
 
 local function PlaystyleName(ps)
     if not ps or ps == PS_NONE then return L.PS_NONE end
@@ -498,12 +504,10 @@ local pendingOpen = 0 -- GetTime() limite entro cui ACTIVE_ENTRY_UPDATE è conse
 local function NeedsPanel()
     if not current then return false end
     if db.mode == "panel" or current.forcePanel then return true end
-    if not C_LFGList.GetKeystoneForActivity or C_LFGList.GetKeystoneForActivity(current.activityID) then
-        return false
-    end
-    -- senza key di quel dungeon: da soli il server rifiuta sempre (osservato); in gruppo tento il
-    -- listing diretto (la key può averla un membro), e se fallisce il click dopo apre il pannello
-    return GetNumGroupMembers(CAT_HOME) == 0
+    -- GetKeystoneForActivity vede solo la TUA key (nil anche con l'amico in gruppo): senza di essa
+    -- il titolo prebuilt è vuoto e il server rifiuta il listing via API (verificato 12-09-2026,
+    -- da soli e in gruppo), mentre dal pannello con titolo digitato passa. Quindi: pannello.
+    return C_LFGList.GetKeystoneForActivity and not C_LFGList.GetKeystoneForActivity(current.activityID) or false
 end
 
 local function RefreshRow()

@@ -43,7 +43,8 @@ Enum = {
 }
 GROUP_FINDER_CATEGORY_ID_DUNGEONS = 2
 LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = 1, 2
-GROUP_FINDER_GENERAL_PLAYSTYLE4 = "Competitive"
+GROUP_FINDER_GENERAL_PLAYSTYLE3 = "Competitive"
+GROUP_FINDER_GENERAL_PLAYSTYLE4 = "Carry Offered"
 SlashCmdList = {}
 UIParent = {}
 
@@ -145,7 +146,7 @@ ev._scripts.OnEvent(ev, "ADDON_LOADED", "KeyLinkLister")
 ev._scripts.OnEvent(ev, "PLAYER_LOGIN")
 """)
 assert any("loaded" in p for p in g.printed.values()), list(g.printed.values())
-assert g.KeyLinkListerDB.playstyle == 4 and g.KeyLinkListerDB.mode == "direct"
+assert g.KeyLinkListerDB.playstyle == 3 and g.KeyLinkListerDB.mode == "direct"   # default Competitive
 
 # ---- parse -------------------------------------------------------------------
 m, lvl = KL.ParseKeystoneLink("|cffa335ee|Hkeystone:180653:250:12:10:9:152:0|h[Keystone: Temple of Sethraliss (12)]|h|r")
@@ -181,12 +182,12 @@ lua.execute("group.members = 3; group.instance = true")
 ok, why = KL.CanList(100); assert ok is False and "instance" in why, why
 lua.execute("group.instance = false; KeyLinkListerDB.playstyle = 0")
 ok, why = KL.CanList(100); assert ok is False and "playstyle" in why, why
-lua.execute("KeyLinkListerDB.playstyle = 4")
+lua.execute("KeyLinkListerDB.playstyle = 3")
 
 # ---- createData: forma esatta attesa da C_LFGList.CreateListing (11.1+) -----
 d = KL.BuildCreateData(100)
 assert list(d.activityIDs.values()) == [100]
-assert d.generalPlaystyle == 4 and d.playstyle == 0
+assert d.generalPlaystyle == 3 and d.playstyle == 0
 assert d.isCrossFactionListing is True and d.isPrivateGroup is False
 assert d.requiredDungeonScore == 0 and d.requiredItemLevel == 0 and d.requiredPvpRating == 0
 d2 = KL.BuildCreateData(102)                                  # activity senza cross-faction
@@ -203,7 +204,7 @@ lfg.calls = {}; local n = 0
 C_LFGList.CreateListing = function(d) n = n + 1; lfg.calls[#lfg.calls+1] = "CreateListing"; lfg.lastCreate = d; return n > 1 end
 """)
 assert KL.DoListing(100, 10) is True
-assert list(g.lfg.calls.values()) == ["CreateListing", "SetEntryTitle:100:10:nil:4", "CreateListing"], list(g.lfg.calls.values())
+assert list(g.lfg.calls.values()) == ["CreateListing", "SetEntryTitle:100:10:nil:3", "CreateListing"], list(g.lfg.calls.values())
 lua.execute('C_LFGList.CreateListing = function(d) lfg.calls[#lfg.calls+1] = "CreateListing"; lfg.lastCreate = d; return true end')
 
 # ---- hook tooltip: link keystone mostra la riga, altro link / toggle la nasconde
@@ -211,10 +212,10 @@ row, listBtn, psBtn = KL.GetRow()
 lua.execute("lfg.ownedKeystones[100] = 12")                  # key posseduta -> listing diretto
 lua.execute('lfg.calls = {}; ItemRefTooltip:SetHyperlink("keystone:180653:250:12:0:0:0:0")')
 assert row.IsShown(row) and KL.GetCurrent().activityID == 100
-assert list(g.lfg.calls.values()) == ["SetEntryTitle:100:10:nil:4"], list(g.lfg.calls.values())  # titolo al click sul link
+assert list(g.lfg.calls.values()) == ["SetEntryTitle:100:10:nil:3"], list(g.lfg.calls.values())  # titolo al click sul link
 lua.execute("lfg.calls = {}; psBtn = select(3, KeyLinkLister.GetRow()); psBtn._scripts.OnClick(psBtn)")
-assert g.KeyLinkListerDB.playstyle == 1 and list(g.lfg.calls.values()) == ["SetEntryTitle:100:10:nil:1"]  # ciclo 4 -> 1
-lua.execute("KeyLinkListerDB.playstyle = 4; KeyLinkLister.RefreshRow()")
+assert g.KeyLinkListerDB.playstyle == 4 and list(g.lfg.calls.values()) == ["SetEntryTitle:100:10:nil:4"]  # ciclo 3 -> 4
+lua.execute("KeyLinkListerDB.playstyle = 3; KeyLinkLister.RefreshRow()")
 assert listBtn.GetText(listBtn) == "List Group", listBtn.GetText(listBtn)
 assert listBtn.IsEnabled(listBtn) and psBtn.GetText(psBtn) == "Competitive"
 lua.execute('ItemRefTooltip:SetHyperlink("keystone:180653:250:12:0:0:0:0")')   # stesso link = toggle off
@@ -268,7 +269,7 @@ listBtn._scripts.OnClick(listBtn)
 """)
 assert KL.GetCurrent().forcePanel is True and g.shownStub is None
 assert listBtn.GetText(listBtn) == "Open panel", listBtn.GetText(listBtn)
-assert list(g.lfg.calls.values()) == ["CreateListing", "SetEntryTitle:100:10:nil:4", "CreateListing"], list(g.lfg.calls.values())
+assert list(g.lfg.calls.values()) == ["CreateListing", "SetEntryTitle:100:10:nil:3", "CreateListing"], list(g.lfg.calls.values())
 lua.execute("listBtn._scripts.OnClick(listBtn)")
 assert g.shownStub == "LFGListPVEStub"
 lua.execute('C_LFGList.CreateListing = function(d) lfg.calls[#lfg.calls+1] = "CreateListing"; lfg.lastCreate = d; return true end')
@@ -300,7 +301,7 @@ lua.execute("listBtn._scripts.OnClick(listBtn)")
 assert g.shownStub == "LFGListPVEStub" and list(g.lfg.calls.values()) == []
 ec = g.ec
 assert g.selects == 1 and ec.selectedActivity == 100 and ec.selectedGroup == 10 and ec.selectedCategory == 2
-assert ec.generalPlaystyle == 4 and ec.editMode is False and ec.baseFilters == 4 and ec._cleared
+assert ec.generalPlaystyle == 3 and ec.editMode is False and ec.baseFilters == 4 and ec._cleared
 assert lua.eval("LFGListFrame.activePanel == ec"), "pannello EntryCreation non attivato"   # identità confrontata lato Lua
 assert ec._validated and ec.Name._focused
 assert ec.Name._text == "+12", ec.Name._text                        # SetText permesso nello stub => applicato
@@ -321,16 +322,16 @@ assert any("Suggested title" in p and "+12" in p for p in g.printed.values()), l
 lua.execute('SlashCmdList.KEYLINKLISTER("title +%d %s")')
 assert KL.SuggestedTitle(15) == "+15 Competitive", KL.SuggestedTitle(15)
 lua.execute('KeyLinkListerDB.titleFormat = nil')
-# senza key propria ma IN GRUPPO (la key può averla un membro): tentativo diretto, non pannello
+# senza key propria anche IN GRUPPO (GetKeystoneForActivity ignora i membri): pannello, mai listing diretto
 lua.execute("""
 group.home = true; group.leader = true; group.members = 3; lfg.calls = {}; shownStub = nil
 ItemRefTooltip:SetHyperlink("keystone:180653:250:12:0:0:0:0")   -- toggle off
 ItemRefTooltip:SetHyperlink("keystone:180653:250:12:0:0:0:0")
 """)
-assert listBtn.GetText(listBtn) == "List Group"
-assert list(g.lfg.calls.values()) == ["SetEntryTitle:100:10:nil:4"]      # titolo al link come per key propria
+assert listBtn.GetText(listBtn) == "Open panel"
+assert list(g.lfg.calls.values()) == []                                  # nessun SetEntryTitle
 lua.execute("lfg.calls = {}; listBtn._scripts.OnClick(listBtn)")
-assert "CreateListing" in list(g.lfg.calls.values()) and g.shownStub is None
+assert "CreateListing" not in list(g.lfg.calls.values()) and g.shownStub == "LFGListPVEStub"
 lua.execute("lfg.ownedKeystones[100] = 12")
 
 # OnTooltipCleared (contenuto sostituito senza SetHyperlink) nasconde la riga
@@ -358,3 +359,11 @@ lua.execute('SlashCmdList.KEYLINKLISTER("xfaction")')
 assert g.KeyLinkListerDB.crossFaction is False
 
 print("test_keylinklister: OK")
+
+# ---- migrazione playstyle: 4 ("Carry Offered", default della 1.0.0) -> 3 ("Competitive") una volta sola
+lua.execute("KeyLinkListerDB.playstyle = 4; KeyLinkListerDB.psDefaultV2 = nil; KeyLinkLister.InitDB()")
+assert g.KeyLinkListerDB.playstyle == 3 and g.KeyLinkListerDB.psDefaultV2 is True
+lua.execute("KeyLinkListerDB.playstyle = 4; KeyLinkLister.InitDB()")
+assert g.KeyLinkListerDB.playstyle == 4, "scelta esplicita dell'utente dopo la migrazione va rispettata"
+lua.execute("KeyLinkListerDB.playstyle = 3")
+print("migration: OK")
