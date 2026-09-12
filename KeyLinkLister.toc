@@ -1,0 +1,10 @@
+## Interface: 120100
+## Title: KeyLinkLister
+## Notes: Click a linked Mythic Keystone in chat: one button lists a Premade Group for that dungeon (or opens the panel pre-filled).
+## Notes-itIT: Clicca una Keystone linkata in chat: un pulsante crea il gruppo Premade per quel dungeon (o apre il pannello prefillato).
+## Author: Seipher
+## Version: 1.0.0
+## Category: Dungeons & Raids
+## SavedVariables: KeyLinkListerDB
+
+KeyLinkLister.lua

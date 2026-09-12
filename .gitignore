@@ -1,0 +1,12 @@
+# working files, never published
+.fablize/
+
+# secrets
+*.curseforge*
+*token*
+*.pem
+
+# junk
+Thumbs.db
+Desktop.ini
+__pycache__/
